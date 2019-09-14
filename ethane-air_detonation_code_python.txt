@@ -1,0 +1,235 @@
+import sys
+import numpy as np
+from SDToolbox import *
+import csv
+import matplotlib.pyplot as plt
+
+
+# Keyboard input of parameters
+Tmin=float(raw_input('Tmin= [k]'))  
+Tmax=float(raw_input('Tmax= [k]'))
+Pmin=int(raw_input('Pmin= [Pa]'))
+Pmax=int(raw_input('Pmax= [Pa]'))
+Fimin=float(raw_input('Fimin= ')) 
+Fimax=float(raw_input('Fimax= '))
+
+# Amount of iterations
+npoints = 20
+
+Pi = np.zeros(npoints, 'd')
+Ti = np.zeros(npoints, 'd')
+Fi = np.zeros(npoints, 'd')
+
+
+DCJ_p = np.zeros(npoints, 'd')    #C-J density
+PCJ_p = np.zeros(npoints, 'd')    #C-J pressure
+TCJ_p = np.zeros(npoints, 'd')    #C-J temperature
+VCJ_p = np.zeros(npoints, 'd')    #C-J speed
+
+# Detonation parameters in the function of pressure
+for k in range(npoints):
+    Pi[k] = Pmin + (Pmax - Pmin) * k / (npoints - 1)
+    q = 'C2H6:0.9375 O2:1'  
+    mech = 'gri30_highT.cti'
+
+    [cj_speed, R2] = CJspeed(Pi[k], Tmin, q, mech, 0)
+    gas = PostShock_eq(cj_speed, Pi[k], Tmin, q, mech)
+
+    DCJ_p[k] = gas.density
+    PCJ_p[k] = gas.P
+    TCJ_p[k] = gas.T
+    VCJ_p[k] = cj_speed
+
+    print 'For P=' + str(Pi[k]) + 'Pa detonation parameters are:'
+    print 'DCJ=' + str(DCJ_p[k]) + ' kg/m^3'
+    print 'PCJ=' + str(PCJ_p[k]) + ' kPa'
+    print 'TCJ=' + str(TCJ_p[k]) + ' K'
+    print 'VCJ=' + str(VCJ_p[k]) + ' m/s'
+    print ''
+
+csv_file = 'Detonation(pressure).csv'
+with open(csv_file, 'w') as outfile:
+    writer = csv.writer(outfile)
+    writer.writerow(['Initial Pressure', 'Density', 'CJ Speed', 'Final Pressure', 'Final Temperature'])
+    for i in range(npoints):
+        writer.writerow([Pi[i], DCJ_p[i], VCJ_p[i], PCJ_p[i], TCJ_p[i]])
+
+        
+DCJ_temp = np.zeros(npoints, 'd')    #C-J density
+PCJ_temp = np.zeros(npoints, 'd')    #C-J pressure
+TCJ_temp = np.zeros(npoints, 'd')    #C-J temperature
+VCJ_temp = np.zeros(npoints, 'd')    #C-J speed
+
+# Detonation parameters in the function of temperature
+for k in range(npoints):
+    Ti[k] = Tmin + (Tmax - Tmin) * k / (npoints - 1)
+    q = 'C2H6:0.9375 O2:1' 
+    mech = 'gri30_highT.cti'
+
+    [cj_speed, R2] = CJspeed(Pmin, Ti[k], q, mech, 0)
+    gas = PostShock_eq(cj_speed, Pmin, Ti[k], q, mech)
+
+    DCJ_temp[k] = gas.density
+    PCJ_temp[k] = gas.P / 1000
+    TCJ_temp[k] = gas.T
+    VCJ_temp[k] = cj_speed
+
+    print 'For T=' + str(Ti[k]) + 'K detonation parameters are:'
+    print 'DCJ=' + str(DCJ_temp[k]) + ' kg/m^3'
+    print 'PCJ=' + str(PCJ_temp[k]) + ' kPa'
+    print 'TCJ=' + str(TCJ_temp[k]) + ' K'
+    print 'VCJ=' + str(VCJ_temp[k]) + ' m/s'
+    print ''
+
+csv_file = 'Detonation(temperature).csv'
+with open(csv_file, 'w') as outfile:
+    writer = csv.writer(outfile)
+    writer.writerow(['Initial Temperature', 'Density', 'CJ Speed', 'Final Pressure', 'Final Temperature'])
+    for i in range(npoints):
+        writer.writerow([Ti[i], DCJ_temp[i], VCJ_temp[i], PCJ_temp[i], TCJ_temp[i]])
+
+        
+DCJ_Fi = np.zeros(npoints, 'd')  # C-J density
+PCJ_Fi = np.zeros(npoints, 'd')  # C-J pressure
+TCJ_Fi = np.zeros(npoints, 'd')  # C-J temperature
+VCJ_Fi = np.zeros(npoints, 'd')  # C-J speed
+
+# Detonation parameters in function of Fi
+for k in range(npoints):
+    Fi[k] = Fimin + (Fimax - Fimin) * k / (npoints - 1)
+    no2 = float(0.9375 / (Fi[k] * 0.285714))
+    q = 'C2H6:0.9375 O2:{0}'.format(str(no2))
+    mech = 'gri30_highT.cti'
+
+    [cj_speed, R2] = CJspeed(Pmin, Tmin, q, mech, 0)
+    gas = PostShock_eq(cj_speed, Pmin, Tmin, q, mech)
+
+    DCJ_Fi[k] = float(gas.density)
+    PCJ_Fi[k] = float(gas.P / 1000)
+    TCJ_Fi[k] = float(gas.T)
+    VCJ_Fi[k] = float(cj_speed)
+
+    print 'For Fi=' + str(Fi[k]) + ' detonation parameters are:'
+    print 'DCJ=' + str(DCJ_Fi[k]) + ' kg/m^3'
+    print 'PCJ=' + str(PCJ_Fi[k]) + ' kPa'
+    print 'TCJ=' + str(TCJ_Fi[k]) + ' K'
+    print 'VCJ=' + str(VCJ_Fi[k]) + ' m/s'
+    print ''
+
+csv_file = 'Detonation(Fi).csv'
+with open(csv_file, 'w') as outfile:
+    writer = csv.writer(outfile)
+    writer.writerow(['Initial Fi', 'Density', 'CJ Speed', 'Final Pressure', 'Final Temperature'])
+    for i in range(npoints):
+        writer.writerow([Fi[i], DCJ_Fi[i], VCJ_Fi[i], PCJ_Fi[i], TCJ_Fi[i]])
+        
+# Plots        
+
+plt.plot(Ti, DCJ_temp, 'b^')
+plt.xlabel('Initial temperature [K]', fontsize=14)
+plt.ylabel('Density [kg/m^3]', fontsize=14)
+plt.title('Detonation of $C_{2}H_{6}$ and oxygen mixture, P=1atm, $\Phi$=1', fontsize=18,
+horizontalalignment='center')
+plt.grid()
+plt.savefig('density_Ti.png', bbox_inches='tight')
+plt.show()
+
+plt.plot(Ti, PCJ_temp, 'b^')
+plt.xlabel('Initial temperature [K]', fontsize=14)
+plt.ylabel('Detonation pressure [kPa]', fontsize=14)
+plt.title('Detonation of $C_{2}H_{6}$ and oxygen mixture, P=1atm, $\Phi$=1', fontsize=18,
+horizontalalignment='center')
+plt.grid()
+plt.savefig('pressure_Ti.png', bbox_inches='tight')
+plt.show()
+
+plt.plot(Ti, TCJ_temp, 'b^')
+plt.xlabel('Initial temperature [K]', fontsize=14)
+plt.ylabel('Detonation temperature [K]', fontsize=14)
+plt.title('Detonation of $C_{2}H_{6}$ and oxygen mixture, P=1atm, $\Phi$=1', fontsize=18,
+horizontalalignment='center')
+plt.grid()
+plt.savefig('temperature_Ti.png', bbox_inches='tight')
+plt.show()
+
+plt.plot(Ti, VCJ_temp, 'b^')
+plt.xlabel('Initial temperature [K]', fontsize=14)
+plt.ylabel('CJ speed [m/s]', fontsize=14)
+plt.title('Detonation of $C_{2}H_{6}$ and oxygen mixture, P=1atm, $\Phi$=1', fontsize=18,
+horizontalalignment='center')
+plt.grid()
+plt.savefig('CJspeed_Ti.png', bbox_inches='tight')
+plt.show()
+
+
+plt.plot(Fi, DCJ_Fi, 'b^')
+plt.xlabel('$\Phi$', fontsize=14)
+plt.ylabel('Density [kg/m^3]', fontsize=14)
+plt.title('Detonation of $C_{2}H_{6}$ and oxygen mixture, P=1atm, T=290K', fontsize=18,
+horizontalalignment='center')
+plt.grid()
+plt.savefig('density_Fi.png', bbox_inches='tight')
+plt.show()
+
+plt.plot(Fi, PCJ_Fi, 'b^')
+plt.xlabel('$\Phi$', fontsize=14)
+plt.ylabel('Detonation pressure [kPa]', fontsize=14)
+plt.title('Detonation of $C_{2}H_{6}$ and oxygen mixture, P=1atm, T=290K', fontsize=18,
+horizontalalignment='center')
+plt.grid()
+plt.savefig('pressure_Fi.png', bbox_inches='tight')
+plt.show()
+
+plt.plot(Fi, TCJ_Fi, 'b^')
+plt.xlabel('$\Phi$', fontsize=14)
+plt.ylabel('Detonation temperature [K]', fontsize=14)
+plt.title('Detonation of $C_{2}H_{6}$ and oxygen mixture, P=1atm, T=290K', fontsize=18,
+horizontalalignment='center')
+plt.grid()
+plt.savefig('temperature_Fi.png', bbox_inches='tight')
+plt.show()
+
+plt.plot(Fi, VCJ_Fi, 'b^')
+plt.xlabel('$\Phi$', fontsize=14)
+plt.ylabel('CJ speed [m/s]', fontsize=14)
+plt.title('Detonation of $C_{2}H_{6}$ and oxygen mixture, P=1atm, T=290K', fontsize=18,
+horizontalalignment='center')
+plt.grid()
+plt.savefig('CJspeed_Fi.png', bbox_inches='tight')
+plt.show()
+
+plt.plot(Pi, DCJ_p, 'b^')
+plt.xlabel('Initial pressure [Pa]', fontsize=14)
+plt.ylabel('Density [kg/m^3]', fontsize=14)
+plt.title('Detonation of $C_{2}H_{6}$ and oxygen mixture, $\Phi$=1, T=290K', fontsize=18,
+horizontalalignment='center')
+plt.grid()
+plt.savefig('density_Pi.png', bbox_inches='tight')
+plt.show()
+
+plt.plot(Pi, PCJ_p, 'b^')
+plt.xlabel('Initial pressure [Pa]', fontsize=14)
+plt.ylabel('Detonation pressure [kPa]', fontsize=14)
+plt.title('Detonation of $C_{2}H_{6}$ and oxygen mixture, $\Phi$=1, T=290K', fontsize=18,
+horizontalalignment='center')
+plt.grid()
+plt.savefig('pressure_Pi.png', bbox_inches='tight')
+plt.show()
+
+plt.plot(Pi, TCJ_p, 'b^')
+plt.xlabel('Initial pressure [Pa]', fontsize=14)
+plt.ylabel('Detonation temperature [K]', fontsize=14)
+plt.title('Detonation of $C_{2}H_{6}$ and oxygen mixture, $\Phi$=1, T=290K', fontsize=18,
+horizontalalignment='center')
+plt.grid()
+plt.savefig('temperature_Pi.png', bbox_inches='tight')
+plt.show()
+
+plt.plot(Pi, VCJ_p, 'b^')
+plt.xlabel('Initial pressure [Pa]', fontsize=14)
+plt.ylabel('CJ speed [m/s]', fontsize=14)
+plt.title('Detonation of $C_{2}H_{6}$ and oxygen mixture, $\Phi$=1, T=290K', fontsize=18,
+horizontalalignment='center')
+plt.grid()
+plt.savefig('CJspeed_Pi.png', bbox_inches='tight')
+plt.show()
